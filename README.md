@@ -21,7 +21,7 @@ futhark-pyopencl --library util.fut
 futhark-pyopencl --library imageproc.fut
 ```
 ```
-`python lane_detection.py
+python lane_detection.py
 ```
 
 Hopefully, you will get a result like shown below. If not, look into tweaking the argument for canny.
