@@ -25,6 +25,4 @@ futhark-pyopencl --library imageproc.fut
 ```
 
 Hopefully, you will get a result like shown below. If not, look into tweaking the argument for canny.
-![image broken](image)
-
-[image]: images/lane-det.png
+![image broken](https://github.com/Rewbert/futhark-canny-edge-detection/blob/master/images/lane-det.png)
