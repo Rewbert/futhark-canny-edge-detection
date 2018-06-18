@@ -2,6 +2,10 @@
 -- You may use this code for educational purposes if you keep these three lines
 -- as they are currently.
 
+-- ==
+-- input @HDRes.txt
+-- input @4KHDRes.txt
+
 import "/util"
 
 -- used in context with the gaussian blur further down, taken from
@@ -46,25 +50,42 @@ let convolve3by3 [n][m]
      (1...n)
      
 -- integer version executes slightly quicker
-let convolve3by3_i32 [n][m]
-             (inp: [n][m]i32)
-             (filt: [3][3]i32):
-             [n][m]i32 =
-  let pad_inp = 
-      [replicate (m+2) 0i32] ++ 
-        (map (\row -> [0i32] ++ row ++ [0i32]) inp) ++ 
-          [replicate (m+2) 0i32]
-  in unsafe map (\i -> map (\j -> pad_inp[i-1,j-1]*filt[0,0] + 
-                           pad_inp[i-1,j]*filt[0,1]   +
-                           pad_inp[i-1,j+1]*filt[0,2] + 
-                           pad_inp[i,j-1]*filt[1,0]   +
-                           pad_inp[i,j]*filt[1,1]     +
-                           pad_inp[i,j+1]*filt[1,2]   +
-                           pad_inp[i+1,j-1]*filt[2,0] +
-                           pad_inp[i+1,j]*filt[2,1]   +
-                           pad_inp[i+1,j+1]*filt[2,2])
-               (1...m))
-     (1...n)
+--let convolve3by3_i32 [n][m]
+--             (inp: [n][m]i32)
+--             (filt: [3][3]i32):
+--             [n][m]i32 =
+--  let pad_inp = 
+--      [replicate (m+2) 0i32] ++ 
+--        (map (\row -> [0i32] ++ row ++ [0i32]) inp) ++ 
+--          [replicate (m+2) 0i32]
+--  in unsafe map (\i -> map (\j -> pad_inp[i-1,j-1]*filt[0,0] + 
+--                           pad_inp[i-1,j]*filt[0,1]   +
+--                           pad_inp[i-1,j+1]*filt[0,2] + 
+--                           pad_inp[i,j-1]*filt[1,0]   +
+--                           pad_inp[i,j]*filt[1,1]     +
+--                           pad_inp[i,j+1]*filt[1,2]   +
+--                           pad_inp[i+1,j-1]*filt[2,0] +
+--                           pad_inp[i+1,j]*filt[2,1]   +
+--                           pad_inp[i+1,j+1]*filt[2,2])
+--               (1...m))
+--     (1...n)
+
+let apply_1d_filter [n] (inp: [n]i32) (filt: [3]i32): [n]i32 =
+  map3 (\left mid right ->
+      left*filt[0] + mid*filt[1] + right*filt[2]) 
+  (rotate (-1) inp) inp (rotate 1 inp)
+
+let convolve3by3_i32 [n][m] 
+                       (inp: [n][m]i32)
+                       (filt: [3][3]i32): 
+                       [n][m]i32 =
+  map3 (\row1 row2 row3 ->
+      map3 (\px1 px2 px3 -> 
+          px1+px2+px3)
+        (apply_1d_filter row1 filt[0])
+        (apply_1d_filter row2 filt[1])
+        (apply_1d_filter row3 filt[2]) )
+  (rotate (-1) inp) inp (rotate 1 inp)
 
 -- follows the same pattern as convolve3by3.
 let convolve5by5 [n][m]
