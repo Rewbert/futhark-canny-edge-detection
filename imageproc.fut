@@ -42,8 +42,8 @@ let convolve3by3 [n][m]
                            pad_inp[i+1,j-1]*filt[2,0] +
                            pad_inp[i+1,j]*filt[2,1]   +
                            pad_inp[i+1,j+1]*filt[2,2]))
-               (tail (iota (m+1))))
-     (tail (iota (n+1)))
+               (1...m))
+     (1...n)
      
 -- integer version executes slightly quicker
 let convolve3by3_i32 [n][m]
@@ -54,7 +54,7 @@ let convolve3by3_i32 [n][m]
       [replicate (m+2) 0i32] ++ 
         (map (\row -> [0i32] ++ row ++ [0i32]) inp) ++ 
           [replicate (m+2) 0i32]
-  in map (\i -> map (\j -> pad_inp[i-1,j-1]*filt[0,0] + 
+  in unsafe map (\i -> map (\j -> pad_inp[i-1,j-1]*filt[0,0] + 
                            pad_inp[i-1,j]*filt[0,1]   +
                            pad_inp[i-1,j+1]*filt[0,2] + 
                            pad_inp[i,j-1]*filt[1,0]   +
@@ -63,8 +63,8 @@ let convolve3by3_i32 [n][m]
                            pad_inp[i+1,j-1]*filt[2,0] +
                            pad_inp[i+1,j]*filt[2,1]   +
                            pad_inp[i+1,j+1]*filt[2,2])
-               (tail (iota (m+1))))
-     (tail (iota (n+1)))
+               (1...m))
+     (1...n)
 
 -- follows the same pattern as convolve3by3.
 let convolve5by5 [n][m]
@@ -76,7 +76,7 @@ let convolve5by5 [n][m]
                               (map r32 row)     ++ 
                               [0f32,0f32]) inp) ++ 
                 [replicate (m+4) 0f32, replicate (m+4) 0f32]
-  in map (\i -> map (\j -> i32.f32(
+  in unsafe map (\i -> map (\j -> i32.f32(
                   pad_inp[i-2,j-2]*filt[0,0] + pad_inp[i-2,j-1]*filt[0,1] +
                   pad_inp[i-2,j]*filt[0,2] + pad_inp[i-2,j+1]*filt[0,3] +
                   pad_inp[i-2,j+2]*filt[0,4] + 
@@ -93,8 +93,8 @@ let convolve5by5 [n][m]
                   pad_inp[i+2,j]*filt[4,2] + pad_inp[i+2,j+1]*filt[4,3] + 
                   pad_inp[i+2,j+2]*filt[4,4]
                 ))
-                (tail (tail (iota (m+2))))) 
-     (tail (tail (iota (n+2))))
+                (2...m)) 
+     (2...n)
      
 -- applies a gaussian blur to the input, smoothing out any edges. Goal of this
 -- operation is to eliminate noises caused by false edges.
@@ -105,7 +105,7 @@ let gaussian_blur [n][m] (inp: [n][m]i32) (std_dev: f32) : [n][m]i32 =
                             std_dev)
                        (iota 5))
              (iota 5)
-  in convolve5by5 inp filt
+  in unsafe convolve5by5 inp filt
 
 -- computes gradient intensity and gradient angle from the given image
 let gradient_intensity [n][m] 
@@ -268,3 +268,6 @@ entry canny_edge_detection [n][m]
   let grad_int = gradient_intensity blurred
   let supressed = non_maximum_supression grad_int
   in double_threshold supressed upper lower
+
+let main [n][m] (inp: [n][m]i32): [n][m]i32 =
+  canny_edge_detection inp 5f32 30 15

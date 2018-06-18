@@ -26,3 +26,17 @@ python lane_detection.py
 
 Hopefully, you will get a result like shown below. If not, look into tweaking the argument for canny.
 ![image broken](https://github.com/Rewbert/futhark-canny-edge-detection/blob/master/images/lane-det.png)
+
+### Performance
+My potato-laptop has:
++ Intel Core i3-6100U Processor (3MB cache, 2.30GHz)
++ Intel HD Graphics 520 (it's an integrated card)
++ 4GB DDR4-2133 SODIMM RAM
+
+The performance of the Canny Edge Detection algorithm is (evaluated with futhark-bench):
++ HD resolution images:
+    + 272 916 microseconds (running on CPU)
+    + 99 843 microseconds (running on GPU) (2.73x faster)
++ 4K HD resolution images:
+    + 1 094 854 microseconds (running on CPU)
+    + 387 495 microseconds (running on GPU) (2.82x faster)
