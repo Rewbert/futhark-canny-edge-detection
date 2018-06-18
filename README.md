@@ -34,9 +34,9 @@ My potato-laptop has:
 + 4GB DDR4-2133 SODIMM RAM
 
 The performance of the Canny Edge Detection algorithm is (evaluated with futhark-bench):
-+ HD resolution images:
++ HD resolution images 1920x1080:
     + 272 916 microseconds (running on CPU)
     + 99 843 microseconds (running on GPU) (2.73x faster)
-+ 4K HD resolution images:
++ 4K HD resolution images 3840x2160:
     + 1 094 854 microseconds (running on CPU)
     + 387 495 microseconds (running on GPU) (2.82x faster)
