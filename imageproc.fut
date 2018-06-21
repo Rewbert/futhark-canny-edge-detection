@@ -15,39 +15,24 @@ let gaussian_function (x: f32) (y: f32) (std_dev: f32): f32 =
   let op2 = 1f32/(2f32*f32.pi*(std_dev*std_dev))
   in op1*op2
 
--- float version of 3by3 convolution on images. Pads borders with zeros to
--- not index out of bounds.
-let convolve3by3 [n][m]
-             (inp: [n][m]i32)
-             (filt: [3][3]f32):
-             [n][m]i32 =
-  -- pad input with zeros to not index out of bounds
-  let pad_inp = 
-      [replicate (m+2) 0f32] ++ 
-        (map (\row -> [0f32] ++ (map r32 row) ++ [0f32]) inp) ++ 
-          [replicate (m+2) 0f32]
+-- applies filter over one row
+let apply_1d_filter_f32 [n] (inp: [n]f32) (filt: [3]f32): [n]f32 =
+  map3 (\left mid right ->
+      left*filt[0] + mid*filt[1] + right*filt[2]) 
+  (rotate (-1) inp) inp (rotate 1 inp)
 
-  -- this is prettier on the eyes, but runs good only on futhark-c
-  --in map (\i -> map (\j -> loop res = 0 for j' in [-1,0,1] do
-  --                             loop interim = 0 for i' in [-1,0,1] do
-  --                                 interim + pad_inp[i+i',j+j']*
-  --                                           filt[i'+1,j'+1]) 
-  --             (tail (iota (m+1))))
-  --   (tail (iota (n+1)))
-
-  -- this runs well on futhark-opencl
-  in map (\i -> map (\j -> i32.f32(
-                           pad_inp[i-1,j-1]*filt[0,0] + 
-                           pad_inp[i-1,j]*filt[0,1]   +
-                           pad_inp[i-1,j+1]*filt[0,2] + 
-                           pad_inp[i,j-1]*filt[1,0]   +
-                           pad_inp[i,j]*filt[1,1]     +
-                           pad_inp[i,j+1]*filt[1,2]   +
-                           pad_inp[i+1,j-1]*filt[2,0] +
-                           pad_inp[i+1,j]*filt[2,1]   +
-                           pad_inp[i+1,j+1]*filt[2,2]))
-               (1...m))
-     (1...n)
+-- applies the full 3by3 convolution, f32 version
+let convolve3by3 [n][m] 
+                       (inp: [n][m]f32)
+                       (filt: [3][3]f32): 
+                       [n][m]f32 =
+  map3 (\row1 row2 row3 ->
+      map3 (\px1 px2 px3 -> 
+          px1+px2+px3)
+        (apply_1d_filter_f32 row1 filt[0])
+        (apply_1d_filter_f32 row2 filt[1])
+        (apply_1d_filter_f32 row3 filt[2]) )
+  (rotate (-1) inp) inp (rotate 1 inp)
      
 -- applies filter over one row
 let apply_1d_filter [n] (inp: [n]i32) (filt: [3]i32): [n]i32 =
