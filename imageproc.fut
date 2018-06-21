@@ -49,32 +49,13 @@ let convolve3by3 [n][m]
                (1...m))
      (1...n)
      
--- integer version executes slightly quicker
---let convolve3by3_i32 [n][m]
---             (inp: [n][m]i32)
---             (filt: [3][3]i32):
---             [n][m]i32 =
---  let pad_inp = 
---      [replicate (m+2) 0i32] ++ 
---        (map (\row -> [0i32] ++ row ++ [0i32]) inp) ++ 
---          [replicate (m+2) 0i32]
---  in unsafe map (\i -> map (\j -> pad_inp[i-1,j-1]*filt[0,0] + 
---                           pad_inp[i-1,j]*filt[0,1]   +
---                           pad_inp[i-1,j+1]*filt[0,2] + 
---                           pad_inp[i,j-1]*filt[1,0]   +
---                           pad_inp[i,j]*filt[1,1]     +
---                           pad_inp[i,j+1]*filt[1,2]   +
---                           pad_inp[i+1,j-1]*filt[2,0] +
---                           pad_inp[i+1,j]*filt[2,1]   +
---                           pad_inp[i+1,j+1]*filt[2,2])
---               (1...m))
---     (1...n)
-
+-- applies filter over one row
 let apply_1d_filter [n] (inp: [n]i32) (filt: [3]i32): [n]i32 =
   map3 (\left mid right ->
       left*filt[0] + mid*filt[1] + right*filt[2]) 
   (rotate (-1) inp) inp (rotate 1 inp)
 
+-- applies the full 3by3 convolution
 let convolve3by3_i32 [n][m] 
                        (inp: [n][m]i32)
                        (filt: [3][3]i32): 

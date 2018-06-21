@@ -40,12 +40,3 @@ The performance of the Canny Edge Detection algorithm is (evaluated with futhark
 + 4K HD resolution images 3840x2160:
     + 1 094 854 microseconds (running on CPU)
     + 387 495 microseconds (running on GPU) (2.82x faster)
-
-
-+ with prettier convolution:
-+ HD resolution images 1920x1080:
-    + 314 348 microseconds (running on CPU)
-    + 117 152 microseconds (running on GPU)
-+ 4K HD resolution images 3840x2160:
-    + 1 254 759 microseconds (running on CPU)
-    + 446 858 microseconds (running on GPU)
