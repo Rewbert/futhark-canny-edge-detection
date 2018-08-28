@@ -6,7 +6,7 @@
 -- input @HDRes.txt
 -- input @4KHDRes.txt
 
-import "/util"
+import "util"
 
 -- used in context with the gaussian blur further down, taken from
 -- wikipedia https://en.wikipedia.org/wiki/Gaussian_blur
@@ -15,42 +15,69 @@ let gaussian_function (x: f32) (y: f32) (std_dev: f32): f32 =
   let op2 = 1f32/(2f32*f32.pi*(std_dev*std_dev))
   in op1*op2
 
--- applies filter over one row
-let apply_1d_filter_f32 [n] (inp: [n]f32) (filt: [3]f32): [n]f32 =
+let convolve 't [n] (inp: [n]t) 
+                    (filt: [3]t) 
+                    (add: t -> t -> t) 
+                    (mul: t -> t -> t):
+                    [n]t =
   map3 (\left mid right ->
-      left*filt[0] + mid*filt[1] + right*filt[2]) 
+    (mul left filt[0]) `add` (mul mid filt[1]) `add` (mul right filt[2]))
   (rotate (-1) inp) inp (rotate 1 inp)
 
--- applies the full 3by3 convolution, f32 version
-let convolve3by3 [n][m] 
-                       (inp: [n][m]f32)
-                       (filt: [3][3]f32): 
-                       [n][m]f32 =
-  map3 (\row1 row2 row3 ->
-      map3 (\px1 px2 px3 -> 
-          px1+px2+px3)
-        (apply_1d_filter_f32 row1 filt[0])
-        (apply_1d_filter_f32 row2 filt[1])
-        (apply_1d_filter_f32 row3 filt[2]) )
-  (rotate (-1) inp) inp (rotate 1 inp)
-     
--- applies filter over one row
-let apply_1d_filter [n] (inp: [n]i32) (filt: [3]i32): [n]i32 =
-  map3 (\left mid right ->
-      left*filt[0] + mid*filt[1] + right*filt[2]) 
-  (rotate (-1) inp) inp (rotate 1 inp)
+let reduceCol 't [k][n] (index: i32)
+                     (add: t -> t -> t)
+                     (neutral: [1]t)
+                     (arrays: [k][n]t):
+                     t =
+  (reduce (\one two -> [one[0] `add` two[index]]) neutral arrays)[0]
 
--- applies the full 3by3 convolution
-let convolve3by3_i32 [n][m] 
-                       (inp: [n][m]i32)
-                       (filt: [3][3]i32): 
-                       [n][m]i32 =
+-- k must be odd and positive
+let convolve_generic 't [n] [k] (inp: [n]t)
+                                (filt: [k]t)
+                                (add: t -> t -> t)
+                                (mul: t -> t -> t)
+                                (neutral: t):
+                                [n]t =
+  -- compute what half the filter size is
+  let half = k / 2
+
+  -- generate a list of rotated lists
+  let rotates = map (\x -> rotate x inp) ((0-half)...(k-half-1))
+
+  -- for each rotated array, map the filter over it
+  let muls = map (\(rot, f) ->
+               map (\x -> mul x f) rot)
+            (zip rotates filt)
+
+  -- reduce the results to produce the output filter
+  let res = map (\i -> reduceCol i add [neutral] muls) (iota n)
+  in res
+
+let convolve3by3 't [n][m] (inp: [n][m]t)
+                           (filt: [3][3]t)
+                           (add: t -> t -> t)
+                           (mul: t -> t -> t):
+                           [n][m]t =
   map3 (\row1 row2 row3 ->
-      map3 (\px1 px2 px3 -> 
-          px1+px2+px3)
-        (apply_1d_filter row1 filt[0])
-        (apply_1d_filter row2 filt[1])
-        (apply_1d_filter row3 filt[2]) )
+    map3 (\px1 px2 px3 ->
+      px1 `add` px2 `add` px3)
+    (convolve row1 filt[0] add mul)
+    (convolve row2 filt[1] add mul) 
+    (convolve row3 filt[2] add mul))
+  (rotate (-1) inp) inp (rotate 1 inp)
+  
+let convolve3by32 't [n][m] (inp: [n][m]t)
+                           (filt: [3][3]t)
+                           (add: t -> t -> t)
+                           (mul: t -> t -> t)
+                           (neutral: t):
+                           [n][m]t =
+  map3 (\row1 row2 row3 ->
+    map3 (\px1 px2 px3 ->
+      px1 `add` px2 `add` px3)
+    (convolve_generic row1 filt[0] add mul neutral)
+    (convolve_generic row2 filt[1] add mul neutral) 
+    (convolve_generic row3 filt[2] add mul neutral))
   (rotate (-1) inp) inp (rotate 1 inp)
 
 -- follows the same pattern as convolve3by3.
@@ -104,8 +131,8 @@ let gradient_intensity [n][m]
   let filt_y = [[-1i32,-2i32,-1i32],
                 [ 0i32, 0i32, 0i32],
                 [ 1i32, 2i32, 1i32]]
-  let g_x = convolve3by3_i32 inp filt_x
-  let g_y = convolve3by3_i32 inp filt_y
+  let g_x = convolve3by32 inp filt_x (+) (*) 0
+  let g_y = convolve3by32 inp filt_y (+) (*) 0
   in map2 (\row1 row2 -> 
                map2 (\pix1 pix2 -> 
                    -- calculate the sum of the squared gradients
@@ -257,4 +284,8 @@ entry canny_edge_detection [n][m]
   in double_threshold supressed upper lower
 
 let main [n][m] (inp: [n][m]i32): [n][m]i32 =
-  canny_edge_detection inp 5f32 30 15
+  let filt = [[1,2,3],[1,2,3],[1,2,3]]
+  in convolve3by32 inp filt (+) (*) 0
+
+--let main [n][m] (inp: [n][m]i32): [n][m]i32 =
+--  canny_edge_detection inp 5f32 30 15
