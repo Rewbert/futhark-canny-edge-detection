@@ -25,11 +25,11 @@ let convolve 't [n] (inp: [n]t)
   (rotate (-1) inp) inp (rotate 1 inp)
 
 let reduceCol 't [k][n] (index: i32)
-                     (add: t -> t -> t)
-                     (neutral: [1]t)
-                     (arrays: [k][n]t):
-                     t =
-  (reduce (\one two -> [one[0] `add` two[index]]) neutral arrays)[0]
+                        (add: t -> t -> t)
+                        (neutral: t)
+                        (arrays: [k][n]t):
+                        t =
+  foldl (\accum arr -> accum `add` arr[index]) neutral arrays
 
 -- k must be odd and positive
 let convolve_generic 't [n] [k] (inp: [n]t)
@@ -50,7 +50,7 @@ let convolve_generic 't [n] [k] (inp: [n]t)
             (zip rotates filt)
 
   -- reduce the results to produce the output filter
-  let res = map (\i -> reduceCol i add [neutral] muls) (iota n)
+  let res = map (\i -> reduceCol i add neutral muls) (iota n)
   in res
 
 let convolve3by3 't [n][m] (inp: [n][m]t)
